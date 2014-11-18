@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	<title>Chat</title>
+
+	<script type="text/javascript" src="/plugins/jquery-1.7.2.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="/plugins/bootstrap/bootstrap.css">
+	<script type="text/javascript" src="/plugins/bootstrap/bootstrap.js"></script>
+	<script type="text/javascript" src="/plugins/bootbox.min.js"></script>
+	<!-- <link href='http://fonts.googleapis.com/css?family=Inconsolata:400' rel='stylesheet' type='text/css'> -->
+	<!-- <link href='http://fonts.googleapis.com/css?family=Open+Sans:300,600,400' rel='stylesheet' type='text/css'> -->
+	
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+	<div id="container">
+		<h1>Chat</h1>
+		<div id="messages"></div>
+		<input id="text-entry" type="text">
+	</div>
+
+	<script type="text/javascript">
+
+	var socket = io.connect('/');
+	var username = "";
+
+	$( document ).ready(function() {
+		// Display a prompt to get the user's name
+		bootbox.prompt("What is your name?", function(result) {
+			if (result == null) {
+				// Example.show("Prompt dismissed");
+			} else {
+				// Example.show("Hi <b>"+result+"</b>");
+				username = result.trim();
+
+				var currentDateTime = new Date();
+				var messageToSend = {
+					text: "--- " + username + " has joined the conversation. ---"
+					, sender: ""
+					, date: currentDateTime.today()
+					, time: currentDateTime.timeNow()
+				};
+				socket.emit('message', messageToSend);
+
+				$("#text-entry").focus();
+			}
+		});
+	});
+
+	function displayMessage(message) {
+		var message = ''
+		+ '<div class="message">'
+			+ '<span class="time">'+message.date+' @ '+message.time+'</span>'
+			+ '<span class="sender">'+message.sender+'</span>'
+			+ '<span class="text">'+message.text+'</span>'
+		+ '</div>';
+		// Display the message
+		// $("#messages").append(message.sender + ": " + message.text + "<br>");
+		$("#messages").append(message);
+		// Scroll to bottom
+		$("#messages").scrollTop($("#messages").get(0).scrollHeight);
+	}
+
+	socket.on('getallmessages', function (messages) {
+		// Show all of the messages that were sent before the user joined
+		for (var i = 0; i < messages.length; i++) {
+			displayMessage(messages[i]);
+		};
+	});
+
+	socket.on('displaymessage', function (message) {
+		// We have a received message
+		displayMessage(message);
+	});
+
+	// For today's date
+	Date.prototype.today = function () { 
+		return (((this.getMonth()+1) < 10)?"0":"") + (this.getMonth()+1) +
+		"/"+ ((this.getDate() < 10)?"0":"") + this.getDate() +
+		"/"+ this.getFullYear();
+	}
+
+	// For the time now
+	Date.prototype.timeNow = function () {
+		return ((this.getHours() < 10)?"0":"") + this.getHours() +":"+ ((this.getMinutes() < 10)?"0":"") + this.getMinutes() +":"+ ((this.getSeconds() < 10)?"0":"") + this.getSeconds();
+	}
+
+	$("#text-entry").keypress(function(e) {
+		// If "Enter" key was pressed
+		if(e.which == 13) {
+			// Send a message with the time, date, username, and text
+			var currentDateTime = new Date();
+			var messageToSend = {
+				text: $("#text-entry").val()
+				, sender: username
+				, date: currentDateTime.today()
+				, time: currentDateTime.timeNow()
+			};
+			// Send the message to everyone
+			socket.emit('message', messageToSend);
+			// Clear the text field
+			$("#text-entry").val('');
+		}
+	});
+
+	</script>
+</body>
+</html>
