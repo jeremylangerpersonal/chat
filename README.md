@@ -1,5 +1,4 @@
 #Chat
-====
 
 ###Online real-time chat powered by Node.JS
 
